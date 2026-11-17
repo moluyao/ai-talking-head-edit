@@ -20,7 +20,13 @@
 ## 内容
 
 ```
-skills/ai-talking-head-edit/SKILL.md
+skills/ai-talking-head-edit/
+├── SKILL.md            工作流全文（原作者内容 + 标明的整理者补充）
+├── prompts/            4 份可直接复制的提示词（原文出自原视频）
+├── templates/          脚本表、剪辑意见表模板（表格格式出自原视频，文件由整理者制作）
+└── scripts/
+    └── rough_cut.py    按【留白与停顿】规则压缩停顿的粗剪脚本（整理者补充，实验性）
+tests/                  rough_cut.py 的自动测试和测试报告
 ```
 
 流程：素材准备（脚本表 + 口播）→ 视频生成（调色参考图、动画分镜、BGM、音效、先做开头 30 秒）→ 剪气口粗剪 → 表格化反馈循环 → 导出剪映工程交付。
@@ -29,6 +35,16 @@ skills/ai-talking-head-edit/SKILL.md
 
 把 `skills/ai-talking-head-edit` 文件夹复制到项目的 `.claude/skills/` 下，或者复制到 `~/.claude/skills/` 下。
 然后对 Claude 说「帮我把这段口播剪成片」即可。
+
+粗剪脚本的依赖：Python 3.9+、`numpy`、`ffmpeg` / `ffprobe`（需在 PATH 中）。
+自测：
+
+```bash
+python tests/test_rough_cut.py
+```
+
+**关于粗剪脚本的可靠性**：已通过合成素材和 TTS 中文语音的量化测试。真人录制的原始口播还没测过，所以标为实验性。
+测过什么、没测过什么，都写在 [tests/README.md](tests/README.md) 里。
 
 ## 许可
 

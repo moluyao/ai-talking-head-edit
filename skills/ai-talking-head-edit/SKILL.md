@@ -49,7 +49,7 @@ AI 配音（尤其是用自己声纹克隆的）：**不要加太多语气提示
 做法：自己先调好**一张**截图（剪映 / 醒图 / LR 都行），作为附件给 Claude：「人物画面调色对照附件图片的色调，把全片复刻成同样效果」。调色和粗剪共用同一张参数表。
 
 ### 1.2 分镜：用动画风格 skill
-原作者用自家开源 skill [`dashi-animationstyle`](https://github.com/chuspeeism/dashi-animationstyle)（HTML/Canvas 写动画，无头 Chrome 逐帧截图合成，视频口述「8 种精选分镜风格」，README 写「自带 7 套风格」：立体卡通、黑底科技、米灰海报等）。
+原作者用自家开源 skill [`dashi-animationstyle`](https://github.com/chuspeeism/dashi-animationstyle)（HTML/Canvas 写动画，无头 Chrome 逐帧截图合成，视频口述「8 种精选分镜风格」，README 写「自带 7 套风格」：立体卡通、黑底科技、复古剪纸、复古报刊、扁平流程图、手绘笔记等）。
 替代方案：任何「HTML/Canvas 或 GSAP 写动画 → 无头浏览器逐帧截图 → ffmpeg 合成」的管线都可以。
 
 ### 1.3 BGM：给它，或让它自己去网站下
@@ -114,7 +114,42 @@ AI 理解不到位最典型的就是气口。原作者摸索一个多月后的�
 【交付】附上每段使用的 Take 及（以下为推断）拼接位置、各项问题的时间码清单。
 ```
 
+### 2.1 辅助脚本 `scripts/rough_cut.py`（整理者补充，实验性，非原视频内容）
+
+把上面【留白与停顿】那一节做成可执行的工具。脚本只负责测量和机械剪切；
+哪段是重复或重说、每个停顿该算逗号还是句号，仍然由 Claude 对照转写来判断。
+
+依赖：Python 3.9+、`numpy`、`ffmpeg` / `ffprobe`（需在 PATH 中，推荐 5.1 以上）。
+下面的 `scripts/` 是相对本 skill 目录的路径；装到 `~/.claude/skills/` 后，完整路径是 `~/.claude/skills/ai-talking-head-edit/scripts/rough_cut.py`。
+
+```bash
+python scripts/rough_cut.py analyze 口播.mp4 -o pauses.json
+# Claude 读转写，修改 pauses.json：
+#   pauses[].label 改成真实标点：keep / hesitation / comma / period / paragraph / splice
+#   drops 里填要删掉的源时间区间：[[开始秒, 结束秒, "原因"], ...]，用于重复、说一半重来、口癖
+#     删整句：直接填 speech[] 里那段的起止时间即可，拼接处停顿会自动按「保留那句之后的停顿标签」重算
+#     删句内口癖：填口癖本身的时间，拼接处自动只留 0.04s（splice）
+python scripts/rough_cut.py cut 口播.mp4 pauses.json -o 粗剪.mp4   # 同时生成 粗剪_交付说明.md
+```
+
+- 有声边界按实测音频能量判定（Otsu 自适应阈值 + 双阈值延伸），不依赖语音识别的时间戳。
+- 默认标签只按停顿时长猜，**一定要让 Claude 对照转写改过再 cut**。
+- 同一批素材想保持一致，可以用 `--threshold-db` 锁定阈值。
+- 已知局限：
+  - 吸气、咳嗽的响度接近人声时，会被当成有声段保留；
+  - 背景音乐很响的素材不适用（只为干净的口播原片设计）；
+  - 挑 Take、跨 Take 拼接不在脚本范围内；
+  - 脚本不改帧率，提示词里「60帧」的粗剪需要另行转换；
+  - 长素材切点很多（上千处）时渲染会比较慢。
+- 支持：音轨起始时间不为 0 的手机/相机素材、可变帧率素材、带封面的音频文件；输出扩展名用 `.mp3/.wav/.m4a/.flac` 时只输出音频。
+- 测试方法和结果见仓库的 `tests/README.md`。
+
 实现提示（整理者补充）：起音/收音「实测」= 用音频能量（RMS / ffmpeg silencedetect）找真实有声边界，不用语音识别的时间戳。
+
+### 2.2 其它文件
+
+- `prompts/`：主提示词、先做开头 30 秒、剪气口粗剪、轮询剪辑意见，共四份，原文出自原视频，可直接复制。
+- `templates/脚本.md`、`templates/剪辑意见.md`：表格格式出自原视频，模板文件由整理者制作。
 
 ---
 
