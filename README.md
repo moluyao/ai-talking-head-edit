@@ -7,22 +7,23 @@
 **本仓库的工作流、方法和「剪气口 / 挑 Take」提示词，均为「大师的AI小灶」原创。**
 
 - 原视频：[《全网最深度的 AI 剪辑教程》](https://x.com/dashiAIxz/status/2122492466490433678)（X，2026-11-17）
+- 原作者文章版：[《全网独一份：最深度 AI 剪辑全流程教程》](https://x.com/dashiAIxz/status/2124087160907403401)（X，2026-11-21，提示词全文以此为准）
 - 原作者：大师的AI小灶，X [@dashiAIxz](https://x.com/dashiAIxz) · GitHub [chuspeeism](https://github.com/chuspeeism) · 抖音 / 小红书 / B站同名
 - 原作者的分镜动画 skill：[chuspeeism/dashi-animationstyle](https://github.com/chuspeeism/dashi-animationstyle)
 
 本仓库只是看完视频后整理的学习笔记，结构化成可以直接调用的 skill，方便大家照着做。
 整理时补充的内容（替代方案、实现提示、版权提醒）都在文中单独标了出来。
-视频里被字幕遮挡的一行提示词是整理者推断补齐的，文中已注明。
+提示词全文照录自原作者文章版（作者注明「文中的提示词都可以直接复制」）。
 
 如果原作者希望修改署名，或者删除本仓库，请提 Issue，我们会立即处理。
-想看完整讲解和演示，请去原视频支持原作者。
+想看完整讲解和演示，请去原视频和文章支持原作者。
 
 ## 内容
 
 ```
 skills/ai-talking-head-edit/
 ├── SKILL.md            工作流全文（原作者内容 + 标明的整理者补充）
-├── prompts/            4 份可直接复制的提示词（原文出自原视频）
+├── prompts/            4 份可直接复制的提示词（原文出自原视频 / 文章版）
 ├── templates/          脚本表、剪辑意见表模板（表格格式出自原视频，文件由整理者制作）
 └── scripts/
     └── rough_cut.py    按【留白与停顿】规则压缩停顿的粗剪脚本（整理者补充，实验性）

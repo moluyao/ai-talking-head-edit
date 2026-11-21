@@ -118,8 +118,10 @@ def main():
 
     # 3) drops：删掉第 4 个有声段（模拟重复句）。用户最自然的填法 = 该段的精确起止时间。
     #    检查：有声段少 1 个；拼接处停顿按「被保留那句之后的停顿」的标签重算，不能两段停顿叠加
+    #    同时填 texts（每段 5 字/秒，第 6 段故意填成 15 字/秒），检查交付说明的语速表和需复查清单
     sp = info["speech"]
     info["drops"] = [[sp[3][0], sp[3][1], "测试：重复句"]]
+    info["texts"] = ["字" * round((e - s) * (15 if k == 6 else 5)) for k, (s, e) in enumerate(sp)]
     json.dump(info, open(os.path.join(d, "p3.json"), "w", encoding="utf-8"), ensure_ascii=False)
     out3 = os.path.join(d, "cut3.mp4")
     subprocess.run([sys.executable, SCRIPT, "cut", src, os.path.join(d, "p3.json"), "-o", out3], check=True)
@@ -132,6 +134,11 @@ def main():
         e = expected(truth[2])
         print(f"拼接处停顿 {j:.3f}s（期望 {e:.2f}，即第 3 句之后原停顿的规则值）")
         if abs(j - e) > TOL: fails.append(f"拼接处停顿 {j:.3f} vs {e:.2f}")
+    rep3 = open(os.path.splitext(out3)[0] + "_交付说明.md", encoding="utf-8").read()
+    ok_rate = "## 语速" in rep3 and "## 需复查清单" in rep3 and "第 6 段" in rep3 and "偏快" in rep3 \
+        and "| 3 |" not in rep3.split("## 语速")[1].split("## 需复查")[0]
+    print("交付说明 语速表 / 需复查清单：", "正确" if ok_rate else "不对")
+    if not ok_rate: fails.append("交付说明语速或需复查清单不对")
 
     # 4) 音轨起始时间不为 0（手机素材常见）：测量结果应整体后移，剪出来的停顿仍正确
     off = os.path.join(d, "offset.mp4")

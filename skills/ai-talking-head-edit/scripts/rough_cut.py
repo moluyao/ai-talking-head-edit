@@ -180,8 +180,10 @@ def cmd_analyze(a):
         "threshold_db": round(thr, 1), "noise_floor_db": round(floor, 1),
         "rules": {"lead": LEAD, "tail": TAIL, "keep_max": KEEP_MAX, "targets": TARGET},
         "note": "label 可选 keep/hesitation/comma/period/paragraph/splice；默认标签只按时长猜，"
-                "请对照转写改成真实标点。drops 填要整段删掉的源时间区间（重复、说一半重来、口癖）。",
+                "请对照转写改成真实标点。drops 填要整段删掉的源时间区间（重复、说一半重来、口癖）。"
+                "texts 可选：与 speech 一一对应的转写文字，填了交付说明会算语速。",
         "speech": [[round(s, 3), round(e, 3)] for s, e in segs],
+        "texts": [],
         "pauses": pauses,
         "drops": [],
     }
@@ -384,9 +386,36 @@ def cmd_cut(a):
         if abs(p["orig"] - p["new"]) > 1e-3 or p["joined"]:
             rep.append(f"| {p['id']} | {fmt(p['at'])} | {fmt(to_out(p['at']))} | {p['label']} | "
                        f"{p['orig']:.2f}→{p['new']:.2f}s | {'删除后拼接，请听一下是否自然' if p['joined'] else ''} |")
+    review = []
+    texts = info.get("texts") or []
+    if texts:                               # 语速：原提示词【交付】要求列出
+        if len(texts) != len(info["speech"]):
+            sys.exit("texts 的条数应与 speech 相同（每个有声段一条，没有就填空字符串）")
+        rows = []
+        for k, ((s, e), tx) in enumerate(zip(info["speech"], texts)):
+            kept = sum(max(0.0, min(e, ke) - max(s, ks)) for ks, ke in keep)
+            n = len(re.sub(r"[\s\W_]", "", tx or "", flags=re.UNICODE))
+            if n and kept > 0.2:
+                rows.append((k, s, n, kept, n / kept))
+        if rows:
+            med = float(np.median([r[4] for r in rows]))
+            tot_n = sum(r[2] for r in rows); tot_t = sum(r[3] for r in rows)
+            rep += ["\n## 语速\n", f"- 有声部分平均 {tot_n / tot_t:.2f} 字/秒（中位数 {med:.2f}），"
+                    f"含停顿整片 {tot_n / total:.2f} 字/秒",
+                    "\n| 段 | 成片时间 | 字数 | 时长 | 字/秒 | 备注 |", "|---|---|---|---|---|---|"]
+            for k, s, n, t, r in rows:
+                flag = "偏快" if r > med * 1.35 else "偏慢" if r < med * 0.65 else ""
+                if flag:
+                    review.append(f"- 第 {k} 段（成片 {fmt(to_out(s))}）语速{flag}：{r:.2f} 字/秒，"
+                                  "可能是吞音、抢话，或转写文字和有声段没对齐")
+                rep.append(f"| {k} | {fmt(to_out(s))} | {n} | {t:.2f}s | {r:.2f} | {flag} |")
+    for p in plan:
+        if p["joined"]:
+            review.append(f"- 拼接点（成片 {fmt(to_out(p['at']))}）：听一下前后语气和气口是否连贯")
+    rep += ["\n## 需复查清单\n"] + (review or ["- （无自动发现的问题）"])
     rep += ["\n## 需要人工确认\n", "- 默认标签只按停顿时长猜测，未对照转写修改的停顿可能把逗号当句号。",
             "- 吸气、咳嗽如果响度接近人声，会被当成有声段保留。",
-            "- 挑 Take、重复/重说判断、跨 Take 拼接不在本脚本范围，由 Claude 按 prompts/03 处理。"]
+            "- 挑 Take（及原因）、重复/重说判断、跨 Take 拼接不在本脚本范围，由 Claude 按 prompts/03 处理并补进本说明。"]
     rp = os.path.splitext(a.output)[0] + "_交付说明.md"
     open(rp, "w", encoding="utf-8").write("\n".join(rep) + "\n")
     print(f"{len(keep)} 段 → {a.output}（{total:.2f}s），交付说明 → {rp}")
